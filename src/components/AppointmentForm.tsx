@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
+import useAppointmentFormValidation from "../hooks/useAppointmentFormValidation";  
 import "../assets/css/form.css";
 
 interface Doctor {
@@ -26,6 +26,7 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
   token,
 }) => {
   const patientNameRef = useRef<HTMLInputElement>(null);
+  const { errors, validate } = useAppointmentFormValidation();  
   const [apiResponse, setApiResponse] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,19 +36,17 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
     }
   }, []);
 
-  const validationSchema = Yup.object({
-    patientName: Yup.string()
-      .required("El nombre del paciente es obligatorio")
-      .min(3, "Debe tener al menos 3 caracteres"),
-    doctor: Yup.string().required("Debes seleccionar un doctor"),
-    appointmentDate: Yup.date()
-      .required("Debes seleccionar una fecha")
-      .min(new Date(), "La fecha no puede ser en el pasado"),
-  });
-
   const submitAppointment = async (values: any) => {
     setIsSubmitting(true);
     setApiResponse(null); 
+
+    const validationErrors = validate(values);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setApiResponse("Por favor corrige los errores del formulario");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch("http://localhost:5001/api/appointments", {
@@ -84,7 +83,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({
           doctor: "",
           appointmentDate: "",
         }}
-        validationSchema={validationSchema}
         onSubmit={(values, { resetForm }) => {
           submitAppointment(values);
           resetForm(); 
